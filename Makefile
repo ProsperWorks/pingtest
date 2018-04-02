@@ -39,3 +39,7 @@ sweep: clean
 .PHONY: purge # hard purge of all local docker containers and images
 purge: clean gc sweep prune
 	docker images -q | xargs docker rmi
+
+.PHONY: local-pingtest
+local-pingtest:
+	env REDIS_URL=redis://localhost:7379 POSTGRES_URL=postgres://localhost:9750/crm_dev ./pingtest.sh
