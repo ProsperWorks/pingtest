@@ -43,9 +43,15 @@ then
 elif [[ ! -x `which redis-cli` ]]
 then
     echo "redis-cli is not found or not an executable: `which redis-cli`"
-elif ! redis-cli --version | grep -e 'redis.* 3' -e 'redis.* 4'
+elif ! redis-cli --version | grep -e 'redis.* 4'
 then
-    echo "`which redis-cli`: improper version"
+    #
+    # We need version 4 for 'redis-cli --latency --raw' to behave the
+    # way we want.
+    #
+    # Also, the delightful -u option was only added in redis-cli 4.0.3.
+    #
+    echo "`which redis-cli`: not version 4"
 else
     for i in `seq 1 $NUM_SAMPLES`
     do

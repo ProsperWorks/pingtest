@@ -55,7 +55,7 @@ $(DESTDIR)/local.out:
 ali-integration: $(DESTDIR)/ali-integration.out
 $(DESTDIR)/ali-integration.out:
 	@mkdir -p $(dir $@)
-	cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-2X --app ali-integration -- bash - | tee $@.tmp
+	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-2X --app ali-integration -- bash - | tee $@.tmp
 	@mv $@.tmp $@
 
 # Run pingtest.sh in onebox-pw but against ali-integrations's services
@@ -65,22 +65,54 @@ $(DESTDIR)/ali-integration.out:
 onebox-pw-1x: $(DESTDIR)/onebox-pw-1x.out
 $(DESTDIR)/onebox-pw-1x.out:
 	@mkdir -p $(dir $@)
-	cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-1X --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
+	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-1X --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
 	@mv $@.tmp $@
 .PHONY: onebox-pw-l
 onebox-pw-l: $(DESTDIR)/onebox-pw-l.out
 $(DESTDIR)/onebox-pw-l.out:
 	@mkdir -p $(dir $@)
-	cat pingtest.sh | heroku run --no-tty --exit-code --size Performance-L --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
+	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Performance-L --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
 	@mv $@.tmp $@
 
-# Run pingtest.sh on ali-jenkins but against ali-integrations's
-# services.
+# Run pingtest.sh on an EC2 us-east-1 instance with ali-integration services.
 #
-.PHONY: ali-jenkins
-ali-jenkins:
+#   https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:search=i-02d3a6b3dd1cf1538;sort=desc:dnsName
+#
+# This is a Ubuntu instance on which I ran:
+#
+#  sudo apt-get install -y postgresql build-essential tcl
+#  wget http://download.redis.io/releases/redis-4.0.9.tar.gz
+#  tar xvzf redis-4.0.9.tar.gz
+#  make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install
+#
+# ./pingtest.sh needs redis-cli 4.0.3 or higher.
+#
+#
+.PHONY: jhw-ec2
+jhw-ec2: $(DESTDIR)/jhw-ec2
+$(DESTDIR)/jhw-ec2:
 	@mkdir -p $(dir $@)
 	false # TODO
+	@mv $@.tmp $@
+
+# Run pingtest.sh on an GCP us-east-4a instance with ali-integration services.
+#
+#   https://console.cloud.google.com/compute/instancesDetail/zones/us-east4-a/instances/instance-1?project=industrial-joy-526&graph=GCE_CPU&duration=PT1H
+#
+# This is a Debian instance on which I ran:
+#
+#  sudo apt-get install -y postgresql build-essential tcl
+#  wget http://download.redis.io/releases/redis-4.0.9.tar.gz
+#  tar xvzf redis-4.0.9.tar.gz
+#  make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install
+#
+# ./pingtest.sh needs redis-cli 4.0.3 or higher.
+#
+.PHONY: jhw-gcp
+jhw-gcp: $(DESTDIR)/jhw-gcp
+$(DESTDIR)/jhw-gcp:
+	@mkdir -p $(dir $@)
+	set -o pipefail ; cat pingtest.sh | ssh -i ~/.ssh/id_rsa 35.188.225.101 "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $@.tmp
 	@mv $@.tmp $@
 
 .PHONY: analyze
