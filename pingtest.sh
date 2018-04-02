@@ -81,9 +81,9 @@ fi
 # so we can filter if desired.
 #
 #
-if [[ -z "${POSTGRES_URL:-}" ]]
+if [[ -z "${POSTGRES_URL:-${DATABASE_URL_NO_PGBOUNCER:-${DATABASE_URL:-}}}" ]]
 then
-    echo "no POSTGRES_URL or POSTGRESCLOUD_URL"
+    echo "no POSTGRES_URL or DATABASE_URL_NO_PGBOUNCER or DATABASE_URL"
 elif [[ ! -x `which psql` ]]
 then
     echo "psql is not found or not an executable: `which psql`"
@@ -93,7 +93,7 @@ then
 else
     for i in `seq 1 $NUM_SAMPLES`
     do
-        psql "${POSTGRES_URL:-}" -c '\timing on' -c 'SELECT 1' -c 'SELECT 1' -c 'SELECT 1' -c 'SELECT 1' -c 'SELECT 1' 2>&1| grep Time: | sed -e 's/^Time://g' | awk '{printf "postgres_%d: %s\n",NR,$0}'
+        psql "${POSTGRES_URL:-${DATABASE_URL_NO_PGBOUNCER:-${DATABASE_URL:-}}}" -c '\timing on' -c 'SELECT 1' -c 'SELECT 1' -c 'SELECT 1' -c 'SELECT 1' -c 'SELECT 1' 2>&1| grep Time: | sed -e 's/^Time://g' | awk '{printf "postgres_%d: %s\n",NR,$0}'
         sleep 1
     done
 fi

@@ -40,6 +40,55 @@ sweep: clean
 purge: clean gc sweep prune
 	docker images -q | xargs docker rmi
 
-.PHONY: local-pingtest
-local-pingtest:
-	env REDIS_URL=redis://localhost:7379 POSTGRES_URL=postgres://localhost:9750/crm_dev ./pingtest.sh
+# Run pingtest.sh against ALI-style local development services.
+#
+.PHONY: local
+local: $(DESTDIR)/local.out
+$(DESTDIR)/local.out:
+	@mkdir -p $(dir $@)
+	env REDIS_URL=redis://localhost:7379 POSTGRES_URL=postgres://localhost:9750/crm_dev ./pingtest.sh | tee $@.tmp
+	@mv $@.tmp $@
+
+# Run pingtest natively in ali-integration.
+#
+.PHONY: ali-integration
+ali-integration: $(DESTDIR)/ali-integration.out
+$(DESTDIR)/ali-integration.out:
+	@mkdir -p $(dir $@)
+	cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-2X --app ali-integration -- bash - | tee $@.tmp
+	@mv $@.tmp $@
+
+# Run pingtest.sh in onebox-pw but against ali-integrations's services
+# on a Standard-1X or on a Performance-L.
+#
+.PHONY: onebox-pw-1x
+onebox-pw-1x: $(DESTDIR)/onebox-pw-1x.out
+$(DESTDIR)/onebox-pw-1x.out:
+	@mkdir -p $(dir $@)
+	cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-1X --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
+	@mv $@.tmp $@
+.PHONY: onebox-pw-l
+onebox-pw-l: $(DESTDIR)/onebox-pw-l.out
+$(DESTDIR)/onebox-pw-l.out:
+	@mkdir -p $(dir $@)
+	cat pingtest.sh | heroku run --no-tty --exit-code --size Performance-L --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
+	@mv $@.tmp $@
+
+# Run pingtest.sh on ali-jenkins but against ali-integrations's
+# services.
+#
+.PHONY: ali-jenkins
+ali-jenkins:
+	@mkdir -p $(dir $@)
+	false # TODO
+	@mv $@.tmp $@
+
+.PHONY: analyze
+analyze: $(DESTDIR)/local.out
+analyze: $(DESTDIR)/ali-integration.out
+analyze: $(DESTDIR)/onebox-pw-1x.out
+analyze: $(DESTDIR)/onebox-pw-l.out
+	@ls -l $^
+	grep '^redis: ' $(sort $^)
+	grep 'avg latency' $(sort $^)
+	grep '^postgres_3: ' $(sort $^)
