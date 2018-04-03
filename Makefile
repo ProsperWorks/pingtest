@@ -9,50 +9,46 @@
 SHELL   := bash
 DESTDIR := build
 
-# Runs pingtest.sh on all the environments and reports summary
-# analysis for each.
+# 'make all' does it all.
 #
-.PHONY: all
-all:
-	@echo all done
-
-# Sets up some test nodes.
-#
-.PHONY: setup
-setup:
-	@echo setup done
-
-# Does a quick ssh into each node.
-#
-# Recommended for acknowledging all the key fingerprints for new nodes
+# 'make hostname' does a quick ssh into each node.  This is
+# recommended for acknowledging all the key fingerprints for new nodes
 # and testing connectivity, nothing more.
 #
-.PHONY: hostname
-hostname:
-	@echo hostname done
+# 'make setup -j' installs all the necessary software on all nodes.
+#
+# 'make pingtest -j && make pingtest' performs the test and prints out
+# a summary.
+#
+.PHONY: all pingtest setup hostname
+all: pingtest setup
+all pingtest setup hostname:
+	@echo $@ done
 
+# 'make clean' purges all state, resets the project.
+#
 .PHONY: clean
 clean:
 	rm -rf $(DESTDIR)
 
 # Run pingtest.sh locally against ali-integration's services.
 #
-.PHONY: local
-all: local
-local: $(DESTDIR)/local.out
+.PHONY: pingtest-local
+pintest: pingtest-local
+pingtest-local: $(DESTDIR)/pingtest/local
 	cat $< | ./analyze.awk
-$(DESTDIR)/local.out:
+$(DESTDIR)/pingtest/local:
 	@mkdir -p $(dir $@)
 	env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` ./pingtest.sh | tee $@.tmp
 	@mv $@.tmp $@
 
 # Run pingtest natively in ali-integration.
 #
-.PHONY: ali-integration
-all: ali-integration
-ali-integration: $(DESTDIR)/ali-integration.out
+.PHONY: pingtest-ali-integration
+pingtest: pingtest-ali-integration
+pingtest-ali-integration: $(DESTDIR)/pingtest/ali-integration
 	cat $< | ./analyze.awk
-$(DESTDIR)/ali-integration.out:
+$(DESTDIR)/pingtest/ali-integration:
 	@mkdir -p $(dir $@)
 	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-2X --app ali-integration -- bash - | tee $@.tmp
 	@mv $@.tmp $@
@@ -60,19 +56,19 @@ $(DESTDIR)/ali-integration.out:
 # Run pingtest.sh in onebox-pw but against ali-integrations's services
 # on a Standard-1X or on a Performance-L.
 #
-.PHONY: onebox-pw-1x
-all: onebox-pw-1x
-onebox-pw-1x: $(DESTDIR)/onebox-pw-1x.out
+.PHONY: pingtest-onebox-pw-1x
+pingtest: pingtest-onebox-pw-1x
+pingtest-onebox-pw-1x: $(DESTDIR)/pingtest/onebox-pw-1x
 	cat $< | ./analyze.awk
-$(DESTDIR)/onebox-pw-1x.out:
+$(DESTDIR)/pingtest/onebox-pw-1x:
 	@mkdir -p $(dir $@)
 	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-1X --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
 	@mv $@.tmp $@
-.PHONY: onebox-pw-l
-all: onebox-pw-l
-onebox-pw-l: $(DESTDIR)/onebox-pw-l.out
+.PHONY: pingtest-onebox-pw-l
+pingtest: pingtest-onebox-pw-l
+pingtest-onebox-pw-l: $(DESTDIR)/pingtest/onebox-pw-l
 	cat $< | ./analyze.awk
-$(DESTDIR)/onebox-pw-l.out:
+$(DESTDIR)/pingtest/onebox-pw-l:
 	@mkdir -p $(dir $@)
 	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Performance-L --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
 	@mv $@.tmp $@
@@ -91,23 +87,23 @@ $(DESTDIR)/onebox-pw-l.out:
 # host name, and $3 an ssh identity file.
 #
 define EC2_TEST
-.PHONY: jhw-ec2-$1
-all: jhw-ec2-$1
-jhw-ec2-$1: $(DESTDIR)/jhw-ec2/$1
+.PHONY: pingtest-ec2-$1
+pingtest: pingtest-ec2-$1
+pingtest-ec2-$1: $(DESTDIR)/pingtest/ec2/$1
 	cat $$< | ./analyze.awk
-$(DESTDIR)/jhw-ec2/$1:
+$(DESTDIR)/pingtest/ec2/$1: $(DESTDIR)/setup/ec2/$1
 	@mkdir -p $$(dir $$@)
 	set -o pipefail ; cat pingtest.sh | ssh -i $3 ubuntu@$2 "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $$@.tmp
 	@mv $$@.tmp $$@
-.PHONY: setup-$1
-setup: setup-$1
-setup-$1: $(DESTDIR)/setup/$1
-$(DESTDIR)/setup/$1:
+.PHONY: setup-ec2-$1
+setup: setup-ec2-$1
+setup-ec2-$1: $(DESTDIR)/setup/ec2/$1
+$(DESTDIR)/setup/ec2/$1:
 	@mkdir -p $$(dir $$@)
 	ssh -i $3 ubuntu@$2 "echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' | sudo tee -a /etc/apt/sources.list.d/pgdg.list && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - && sudo apt-get update && sudo apt-get install -y postgresql-10 build-essential tcl && rm -rf redis-4.0.9* && wget http://download.redis.io/releases/redis-4.0.9.tar.gz && tar xvzf redis-4.0.9.tar.gz && make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install"
 	@touch $$@
-.PHONY: hostname-$1
-hostname: hostname-$1
+.PHONY: hostname-ec2-$1
+hostname: hostname-ec2-$1
 hostname-$1:
 	ssh -i $3 ubuntu@$2 hostname
 endef
@@ -129,24 +125,24 @@ $(eval $(call EC2_TEST,eu-west-1,52.19.236.61,~/.ssh/jhw-eu-west-1.pem))
 # host name, and $3 an ssh identity file.
 #
 define GCP_TEST
-.PHONY: jhw-gcp-$1
-all: jhw-gcp-$1
-jhw-gcp-$1: $(DESTDIR)/jhw-gcp/$1
+.PHONY: pingtest-gcp-$1
+pingtest: pingtest-gcp-$1
+pingtest-gcp-$1: $(DESTDIR)/pingtest/gcp/$1
 	cat $$< | ./analyze.awk
-$(DESTDIR)/jhw-gcp/$1: $(DESTDIR)/setup/$1
+$(DESTDIR)/pingtest/gcp/$1: $(DESTDIR)/setup/gcp/$1
 	@mkdir -p $$(dir $$@)
 	set -o pipefail ; cat pingtest.sh | ssh -i $3 $2 "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $$@.tmp
 	@mv $$@.tmp $$@
-.PHONY: setup-$1
-setup: setup-$1
-setup-$1: $(DESTDIR)/setup/$1
-$(DESTDIR)/setup/$1:
+.PHONY: setup-gcp-$1
+setup: setup-gcp-$1
+setup-gcp-$1: $(DESTDIR)/setup/gcp/$1
+$(DESTDIR)/setup/gcp/$1:
 	@mkdir -p $$(dir $$@)
 	ssh -i $3 $2 "sudo apt-get update && sudo apt-get install -y postgresql build-essential tcl && rm -rf redis-4.0.9* && wget http://download.redis.io/releases/redis-4.0.9.tar.gz && tar xvzf redis-4.0.9.tar.gz && make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install"
 	@touch $$@
-.PHONY: hostname-$1
-hostname: hostname-$1
-hostname-$1:
+.PHONY: hostname-gcp-$1
+hostname: hostname-gcp-$1
+hostname-gcp-$1:
 	ssh -i $3 $2 hostname
 endef
 $(eval $(call GCP_TEST,us-east4-a,35.188.225.101,~/.ssh/id_rsa))
