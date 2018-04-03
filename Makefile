@@ -16,6 +16,12 @@ DESTDIR := build
 all:
 	@echo all done
 
+# Sets up some test nodes.
+#
+.PHONY: setup
+setup:
+	@echo setup done
+
 .PHONY: clean
 clean:
 	rm -rf $(DESTDIR)
@@ -89,24 +95,41 @@ $(DESTDIR)/jhw-ec2:
 	set -o pipefail ; cat pingtest.sh | ssh -i ~/.ssh/jhw-temp-instance-aaapem.pem ubuntu@ec2-54-164-201-17.compute-1.amazonaws.com "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $@.tmp
 	@mv $@.tmp $@
 
-# Run pingtest.sh on an GCP us-east-4a instance with ali-integration services.
+# Run pingtest.sh on GCP instances, connecting to ali-integration services.
 #
-#   https://console.cloud.google.com/compute/instancesDetail/zones/us-east4-a/instances/instance-1?project=industrial-joy-526&graph=GCE_CPU&duration=PT1H
+#   https://console.cloud.google.com/compute/instances?project=industrial-joy-526
 #
-# This is a Debian instance on which I ran:
-#
-#  sudo apt-get install -y postgresql build-essential tcl
-#  wget http://download.redis.io/releases/redis-4.0.9.tar.gz
-#  tar xvzf redis-4.0.9.tar.gz
-#  make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install
+# These are 4 vCPU 15 GB RAM Debian GNU/Linux 9 instances, initialized
+# as per "make setup".
 #
 # ./pingtest.sh needs redis-cli 4.0.3 or higher and psql 9.6 or higher.
 #
-.PHONY: jhw-gcp
-all: jhw-gcp
-jhw-gcp: $(DESTDIR)/jhw-gcp
-	cat $< | ./analyze.awk
-$(DESTDIR)/jhw-gcp:
-	@mkdir -p $(dir $@)
-	set -o pipefail ; cat pingtest.sh | ssh -i ~/.ssh/id_rsa 35.188.225.101 "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $@.tmp
-	@mv $@.tmp $@
+# GCP_TEST expects $1 to be a pretty name and $2 to be a matched IP
+# address or host name.
+#
+define GCP_TEST
+.PHONY: jhw-gcp-$1
+all: jhw-gcp-$1
+jhw-gcp-$1: $(DESTDIR)/jhw-gcp/$1
+	cat $$< | ./analyze.awk
+$(DESTDIR)/jhw-gcp/$1: $(DESTDIR)/setup/$1
+	@mkdir -p $$(dir $$@)
+	set -o pipefail ; cat pingtest.sh | ssh -i ~/.ssh/id_rsa $2 "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $$@.tmp
+	@mv $$@.tmp $$@
+.PHONY: setup-$1
+setup: setup-$1
+setup-$1: $(DESTDIR)/setup/$1
+$(DESTDIR)/setup/$1:
+	@mkdir -p $$(dir $$@)
+	ssh -i ~/.ssh/id_rsa $2 "sudo apt-get install -y postgresql build-essential tcl && rm -rf redis-4.0.9* && wget http://download.redis.io/releases/redis-4.0.9.tar.gz && tar xvzf redis-4.0.9.tar.gz && make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install"
+	@touch $$@
+.PHONY: hostname-$1
+hostname: hostname-$1
+hostname-$1:
+	ssh -i ~/.ssh/id_rsa $2 hostname
+endef
+$(eval $(call GCP_TEST,us-east4-a,35.188.225.101))
+$(eval $(call GCP_TEST,us-central1-f,104.154.255.179))
+$(eval $(call GCP_TEST,us-west1-c,35.197.56.181))
+$(eval $(call GCP_TEST,europe-west1-d,130.211.108.218))
+$(eval $(call GCP_TEST,australia-southeast1-a,35.189.2.112))
