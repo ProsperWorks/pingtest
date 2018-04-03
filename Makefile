@@ -20,7 +20,7 @@ all:
 clean:
 	rm -rf $(DESTDIR)
 
-# Run pingtest.sh against ALI-style local development services.
+# Run pingtest.sh locally against ali-integration's services.
 #
 .PHONY: local
 all: local
@@ -28,7 +28,7 @@ local: $(DESTDIR)/local.out
 	cat $< | ./analyze.awk
 $(DESTDIR)/local.out:
 	@mkdir -p $(dir $@)
-	env REDIS_URL=redis://localhost:7379 POSTGRES_URL=postgres://localhost:9750/crm_dev ./pingtest.sh | tee $@.tmp
+	env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` ./pingtest.sh | tee $@.tmp
 	@mv $@.tmp $@
 
 # Run pingtest natively in ali-integration.

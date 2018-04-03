@@ -5,9 +5,9 @@
 #
 BEGIN { 
     redis_sum   = 0.0
-    redis_num   = 0.0
+    redis_num   = 0
     pg_sum      = 0.0
-    pg_num      = 0.0
+    pg_num      = 0
     kernel_ave  = 0.0
     kernel_unit = "unknown"
 }
@@ -26,7 +26,23 @@ BEGIN {
     }
 }
 END {
-    printf "  pg_ave:     %7.4f milliseconds\n",(pg_sum/pg_num)
-    printf "  redis_ave:  %7.4f milliseconds\n",(redis_sum/redis_num)
-    printf "  kernel_ave: %7.4f %s\n",kernel_ave,kernel_unit
+    if (0 == pg_num) {
+        printf "  pg_ave:     NO DATA!\n"
+    }
+    else {
+        printf "  pg_ave:     %7.4f milliseconds\n",(pg_sum/pg_num)
+    }
+    if (0 == redis_num) {
+        printf "  redis_ave:  NO DATA!\n"
+    }
+    else {
+        printf "  redis_ave:  %7.4f milliseconds\n",(redis_sum/redis_num)
+    }
+    if ("unknown" == kernel_unit) {
+        printf "  kernel_ave: NO DATA!\n"
+    }
+    else {
+        printf "  kernel_ave: %7.4f %s\n",kernel_ave,kernel_unit
+    }
+
 }
