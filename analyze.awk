@@ -30,19 +30,19 @@ END {
         printf "  pg_ave:     NO DATA!\n"
     }
     else {
-        printf "  pg_ave:     %7.4f milliseconds\n",(pg_sum/pg_num)
+        printf "  pg_ave:     %9.5f milliseconds\n",(pg_sum/pg_num)
     }
     if (0 == redis_num) {
         printf "  redis_ave:  NO DATA!\n"
     }
     else {
-        printf "  redis_ave:  %7.4f milliseconds\n",(redis_sum/redis_num)
+        printf "  redis_ave:  %9.5f milliseconds\n",(redis_sum/redis_num)
     }
     if ("unknown" == kernel_unit) {
-        printf "  kernel_ave: NO DATA!\n"
+        #printf "  kernel_ave: NO DATA!\n"
     }
     else {
-        printf "  kernel_ave: %7.4f %s\n",kernel_ave,kernel_unit
+        #printf "  kernel_ave: %9.5f %s\n",kernel_ave,kernel_unit
     }
 
 }

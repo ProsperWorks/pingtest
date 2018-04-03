@@ -31,6 +31,12 @@ all pingtest setup hostname:
 clean:
 	rm -rf $(DESTDIR)
 
+# 'make cleantests' resets the tests, but does not purge the setup.
+#
+.PHONY: cleantests
+cleantests:
+	rm -rf $(DESTDIR)/pingtest
+
 # Run pingtest.sh locally against ali-integration's services.
 #
 .PHONY: pingtest-local
