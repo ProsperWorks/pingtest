@@ -86,7 +86,6 @@ fi
 # only 0.1 ms, so the output includes the sample-number-per-execution
 # so we can filter if desired.
 #
-#
 if [[ -z "${POSTGRES_URL:-${DATABASE_URL_NO_PGBOUNCER:-${DATABASE_URL:-}}}" ]]
 then
     echo "no POSTGRES_URL or DATABASE_URL_NO_PGBOUNCER or DATABASE_URL"
@@ -95,6 +94,9 @@ then
     echo "psql is not found or not an executable: `which psql`"
 elif ! psql --version | grep -e 'psql.* 9\.6' -e 'psql.* 10\.'
 then
+    #
+    # We need version 9.6 or higher so we can do multiple -c commands.
+    #
     echo "`which psql`: improper version"
 else
     for i in `seq 1 $NUM_SAMPLES`
