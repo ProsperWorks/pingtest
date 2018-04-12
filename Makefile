@@ -98,7 +98,7 @@ pingtest: pingtest-ec2-$1
 pingtest-ec2-$1: $(DESTDIR)/pingtest/ec2/$1
 	cat $$< | ./analyze.awk
 $(DESTDIR)/pingtest/ec2/$1: $(DESTDIR)/setup/ec2/$1
-	@mkdir -p $$(dir $$@)
+n	@mkdir -p $$(dir $$@)
 	set -o pipefail ; cat pingtest.sh | ssh -i $3 ubuntu@$2 "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $$@.tmp
 	@mv $$@.tmp $$@
 .PHONY: setup-ec2-$1
