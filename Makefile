@@ -9,6 +9,36 @@
 SHELL   := bash
 DESTDIR := build
 
+# Test resources.
+#
+# I created some test resources like so:
+#
+#   $ heroku apps:create --app jhw-pingtest --org prosperworks
+#   $ heroku addons:create --app jhw-pingtest heroku-postgresql:standard-0
+#   $ heroku addons:create --app jhw-pingtest rediscloud:30
+#
+# I waited a bit for the resources to spin up, then I got target URLs
+# like so:
+#
+#   $ heroku config:get --app jhw-pingtest DATABASE_URL    # as POSTGRES_URL
+#   $ heroku config:get --app jhw-pingtest REDISCLOUD_URL  # as REDIS_URL
+#
+# PINGTEST_POSTGRES_URL and PINGTEST_REDIS_URL are expected to be set
+# in the environment as per those commands.  The values themselves
+# have been left out of this Makefile and out of this project to avoid
+# leaking secrets through GitHub.
+#
+# Still, after we are done testing today (2018-09-13) I should clean
+# up with:
+#
+#   $ heroku apps:destroy --app jhw-pingtest --confirm jhw-pingtest
+#
+# We will create VMs and containers and dynos in a variety of clouds
+# and run pingtest.sh to communicate with these resources.
+#
+POSTGRES_URL := $(PINGTEST_POSTGRES_URL)
+REDIS_URL    := $(PINGTEST_REDIS_URL)
+
 # 'make all' does it all.
 #
 # 'make hostname' does a quick ssh into each node.  This is
@@ -23,7 +53,7 @@ DESTDIR := build
 .PHONY: all pingtest setup hostname
 all: pingtest setup
 all pingtest setup hostname:
-	@echo $@ done
+	@echo $@ happy
 
 # 'make clean' purges all state, resets the project.
 #
@@ -37,7 +67,7 @@ clean:
 cleantests:
 	rm -rf $(DESTDIR)/pingtest
 
-# Run pingtest.sh locally against ali-integration's services.
+# Run pingtest.sh locally.
 #
 .PHONY: pingtest-local
 pintest: pingtest-local
@@ -45,22 +75,22 @@ pingtest-local: $(DESTDIR)/pingtest/local
 	cat $< | ./analyze.awk
 $(DESTDIR)/pingtest/local:
 	@mkdir -p $(dir $@)
-	env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` ./pingtest.sh | tee $@.tmp
+	env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) ./pingtest.sh | tee $@.tmp
 	@mv $@.tmp $@
 
-# Run pingtest natively in ali-integration.
+# Run pingtest.sh in a Docker container locally.
 #
-.PHONY: pingtest-ali-integration
-pingtest: pingtest-ali-integration
-pingtest-ali-integration: $(DESTDIR)/pingtest/ali-integration
+.PHONY: pingtest-docker
+pintest: pingtest-docker
+pingtest-docker: $(DESTDIR)/pingtest/docker
 	cat $< | ./analyze.awk
-$(DESTDIR)/pingtest/ali-integration:
+$(DESTDIR)/pingtest/docker: Dockerfile ./pingtest.sh
 	@mkdir -p $(dir $@)
-	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-2X --app ali-integration -- bash - | tee $@.tmp
+	time -p docker build . --tag pingtest:latest
+	set -o pipefail ; docker run --rm --env REDIS_URL=$(REDIS_URL) --env POSTGRES_URL=$(POSTGRES_URL) pingtest:latest pingtest.sh | tee $@.tmp
 	@mv $@.tmp $@
 
-# Run pingtest.sh in onebox-pw but against ali-integrations's services
-# on a Standard-1X or on a Performance-L.
+# Run pingtest.sh in onebox-pw on a Standard-1X or a Performance-L.
 #
 .PHONY: pingtest-onebox-pw-1x
 pingtest: pingtest-onebox-pw-1x
@@ -68,7 +98,7 @@ pingtest-onebox-pw-1x: $(DESTDIR)/pingtest/onebox-pw-1x
 	cat $< | ./analyze.awk
 $(DESTDIR)/pingtest/onebox-pw-1x:
 	@mkdir -p $(dir $@)
-	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-1X --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
+	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-1X --app onebox-pw --env "REDIS_URL=$(REDIS_URL);POSTGRES_URL=$(POSTGRES_URL)" -- bash - | tee $@.tmp
 	@mv $@.tmp $@
 .PHONY: pingtest-onebox-pw-l
 pingtest: pingtest-onebox-pw-l
@@ -76,16 +106,16 @@ pingtest-onebox-pw-l: $(DESTDIR)/pingtest/onebox-pw-l
 	cat $< | ./analyze.awk
 $(DESTDIR)/pingtest/onebox-pw-l:
 	@mkdir -p $(dir $@)
-	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Performance-L --app onebox-pw --env "REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL`;POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL`" -- bash - | tee $@.tmp
+	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Performance-L --app onebox-pw --env "REDIS_URL=$(REDIS_URL);POSTGRES_URL=$(POSTGRES_URL)" -- bash - | tee $@.tmp
 	@mv $@.tmp $@
 
-# Run pingtest.sh on an EC2s instances under account 5846-3632-4655,
-# with ali-integration services.
+# Run pingtest.sh on an EC2s instances under account
+# prosperworks-sandbox (726992017616).
 #
 #   https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:search=i-01471136efe3726ce;sort=desc:dnsName
 #
-# These are 4 vCPU 16 GB RAM Ubuntu Server 16.04 LTS instances,
-# initialized as per "make setup".
+# These are m4.xlarge or m5.xlarge (4 vCPU 16 GB RAM) Ubuntu Server
+# 16.04 LTS instances, initialized as per "make setup".
 #
 # ./pingtest.sh needs redis-cli 4.0.3 or higher and psql 9.6 or higher.
 #
@@ -99,7 +129,7 @@ pingtest-ec2-$1: $(DESTDIR)/pingtest/ec2/$1
 	cat $$< | ./analyze.awk
 $(DESTDIR)/pingtest/ec2/$1: $(DESTDIR)/setup/ec2/$1
 	@mkdir -p $$(dir $$@)
-	set -o pipefail ; cat pingtest.sh | ssh -i $3 ubuntu@$2 "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $$@.tmp
+	set -o pipefail ; cat pingtest.sh | ssh -i $3 ubuntu@$2 "env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) bash -" | tee $$@.tmp
 	@mv $$@.tmp $$@
 .PHONY: setup-ec2-$1
 setup: setup-ec2-$1
@@ -110,13 +140,11 @@ $(DESTDIR)/setup/ec2/$1:
 	@touch $$@
 .PHONY: hostname-ec2-$1
 hostname: hostname-ec2-$1
-hostname-$1:
+hostname-ec2-$1:
 	ssh -i $3 ubuntu@$2 hostname
 endef
-$(eval $(call EC2_TEST,us-east-1a,ec2-54-164-201-17.compute-1.amazonaws.com,~/.ssh/jhw-temp-instance-aaapem.pem))
-$(eval $(call EC2_TEST,us-west-1b,ec2-18-144-40-232.us-west-1.compute.amazonaws.com,~/.ssh/jhw-temp-west.pem))
-$(eval $(call EC2_TEST,ap-northeast-1a,13.231.164.243,~/.ssh/jhw-ap-northeast-1.pem))
-$(eval $(call EC2_TEST,eu-west-1,52.19.236.61,~/.ssh/jhw-eu-west-1.pem))
+$(eval $(call EC2_TEST,jhw-pingtest-aws-us-east-1,ec2-34-205-18-34.compute-1.amazonaws.com,~/.ssh/jhw-pingtest.pem))
+$(eval $(call EC2_TEST,jhw-pingtest-aws-us-west-1,ec2-54-183-146-90.us-west-1.compute.amazonaws.com,~/.ssh/jhw-pingtest-us-west-1pem.pem))
 
 # Run pingtest.sh on GCP instances, connecting to ali-integration services.
 #
@@ -137,7 +165,7 @@ pingtest-gcp-$1: $(DESTDIR)/pingtest/gcp/$1
 	cat $$< | ./analyze.awk
 $(DESTDIR)/pingtest/gcp/$1: $(DESTDIR)/setup/gcp/$1
 	@mkdir -p $$(dir $$@)
-	set -o pipefail ; cat pingtest.sh | ssh -i $3 $2 "env REDIS_URL=`heroku config:get --app ali-integration REDISCLOUD_URL` POSTGRES_URL=`heroku config:get --app ali-integration DATABASE_URL` bash -" | tee $$@.tmp
+	set -o pipefail ; cat pingtest.sh | ssh -i $3 $2 "env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) bash -" | tee $$@.tmp
 	@mv $$@.tmp $$@
 .PHONY: setup-gcp-$1
 setup: setup-gcp-$1
@@ -151,8 +179,5 @@ hostname: hostname-gcp-$1
 hostname-gcp-$1:
 	ssh -i $3 $2 hostname
 endef
-$(eval $(call GCP_TEST,us-east4-a,35.188.225.101,~/.ssh/id_rsa))
-$(eval $(call GCP_TEST,us-central1-f,104.154.255.179,~/.ssh/id_rsa))
-$(eval $(call GCP_TEST,us-west1-c,35.197.56.181,~/.ssh/id_rsa))
-$(eval $(call GCP_TEST,europe-west1-d,130.211.108.218,~/.ssh/id_rsa))
-$(eval $(call GCP_TEST,australia-southeast1-a,35.189.2.112,~/.ssh/id_rsa))
+$(eval $(call GCP_TEST,jhw-pingtest-gcp-us-east1,35.229.16.35,~/.ssh/id_rsa))
+$(eval $(call GCP_TEST,jhw-pingtest-gcp-us-east4,35.230.160.36,~/.ssh/id_rsa))
