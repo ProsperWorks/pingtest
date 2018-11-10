@@ -111,7 +111,7 @@ pingtest pingtest-kube: pingtest-kube-$1
 pingtest-kube-$1: $(DESTDIR)/pingtest/kube/$1
 $(DESTDIR)/pingtest/kube/$1: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl get pods
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$3 $(GOOGLENOX_IMAGE) -- kubectl get pods
 	echo POOP $1 $2 $3
 # > $$@.tmp
 #	mv $$@.tmp $$@
