@@ -117,8 +117,8 @@ $(DESTDIR)/pingtest/kube/$1.run: $(DESTDIR)/pingtest/kube/$1.push
 #	mv $$@.tmp $$@
 $(DESTDIR)/pingtest/kube/$1.push: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) $(GOOGLENOX_IMAGE) docker tag pingtest:latest gcr.io/pingtest:latest
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- docker push gcr.io/pingtest:latest
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- docker tag pingtest:latest gcr.io/$2/pingtest:latest
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- docker push gcr.io/$2/pingtest:latest
 	touch $$@
 endef # define PER_KUBE
 $(eval $(call PER_KUBE,001,ali-integration-001-blue))
