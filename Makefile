@@ -70,7 +70,7 @@ cleantests:
 # Run pingtest.sh locally.
 #
 .PHONY: pingtest-local
-pintest: pingtest-local
+pingtest: pingtest-local
 pingtest-local: $(DESTDIR)/pingtest/local
 	cat $< | ./analyze.awk
 $(DESTDIR)/pingtest/local:
@@ -81,14 +81,44 @@ $(DESTDIR)/pingtest/local:
 # Run pingtest.sh in a Docker container locally.
 #
 .PHONY: pingtest-docker
-pintest: pingtest-docker
+pingtest: pingtest-docker
 pingtest-docker: $(DESTDIR)/pingtest/docker
 	cat $< | ./analyze.awk
-$(DESTDIR)/pingtest/docker: Dockerfile ./pingtest.sh
+.PHONY: docker-build
+docker-build: $(DESTDIR)/pingtest/docker.built
+$(DESTDIR)/pingtest/docker.built: Dockerfile ./pingtest.sh
 	@mkdir -p $(dir $@)
 	time -p docker build . --tag pingtest:latest
+	touch $@
+$(DESTDIR)/pingtest/docker: $(DESTDIR)/pingtest/docker.built
+	@mkdir -p $(dir $@)
 	set -o pipefail ; docker run --rm --env REDIS_URL=$(REDIS_URL) --env POSTGRES_URL=$(POSTGRES_URL) pingtest:latest pingtest.sh | tee $@.tmp
 	@mv $@.tmp $@
+
+# Run pingtest.sh in a Docker container in several GCP Kubernetes clusters.
+#
+GOOGLENOX_RUN_ARGS :=
+GOOGLENOX_RUN_ARGS += --env GCP_PROJECT=$(GCP_PROJECT)
+GOOGLENOX_RUN_ARGS += --env GCP_CLUSTER=$(GCP_CLUSTER)
+GOOGLENOX_RUN_ARGS += --env GCP_REGION=us-east4
+GOOGLENOX_RUN_ARGS += -v $(shell which docker):/usr/bin/docker
+GOOGLENOX_RUN_ARGS += -v /var/run/docker.sock:/var/run/docker.sock
+GOOGLENOX_RUN_ARGS += -v $(GCLOUD_SERVICE_ACCOUNT_KEY_FILE):/var/run/gcloud_service_account_key_file
+
+define PER_KUBE
+.PHONY: pingtest-kube pingtest-kube-$1
+pingtest pingtest-kube: pingtest-kube-$1
+pingtest-kube-$1: $(DESTDIR)/pingtest/kube/$1
+$(DESTDIR)/pingtest/kube/$1: $(DESTDIR)/pingtest/docker.built
+	mkdir -p $$(dir $$@)
+	set -o pipefail ; false
+	echo POOP $1 $2 $3 > $$@.tmp
+	mv $$@.tmp $$@
+endef # define PER_KUBE
+$(eval $(call PER_KUBE,001,ali-integration-001,ali-integration-001-blue))
+$(eval $(call PER_KUBE,002,ali-integration-002,ali-integration-002-cobalt))
+$(eval $(call PER_KUBE,003,ali-integration-003,ali-integration-003-crimson))
+$(eval $(call PER_KUBE,004,ali-integration-004,ali-integration-004-coral))
 
 # Run pingtest.sh in onebox-pw on a Standard-1X or a Performance-L.
 #

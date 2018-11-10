@@ -9,8 +9,7 @@ Short instructions:
 2. Add or remove EC2_TEST and GCP_TEST calls as appropriate to the
    nodes you created.  You will especially need to set your own
    hostnames and ip addresses and SSH credential files.
-3. Delete the `pingtest-local` and `pingtest-ali-integration` and all
-   `pingtest-onebox-*` tasks which will be too idiosyncratic and
+3. Delete the `pingtest-onebox-*` tasks which might be idiosyncratic and
    ProsperWorksish to be useful to you.
 4. Run `make hostname` to accept the fingerprint for all the nodes and
    test `ssh`ing to each.
