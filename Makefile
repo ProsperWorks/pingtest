@@ -108,11 +108,13 @@ GOOGLENOX_RUN_ARGS                 += -v $(GCLOUD_SERVICE_ACCOUNT_KEY_FILE):/var
 define PER_KUBE
 .PHONY: pingtest-kube-push    pingtest-kube-run
 .PHONY: pingtest-kube-push-$1 pingtest-kube-run-$1
-pingtest pingtest-kube-run pingtest-kube-run-$1: $(DESTDIR)/pingtest/kube/$1.run
 pingtest-kube-push pingtest-kube-push-$1: $(DESTDIR)/pingtest/kube/$1.push
+pingtest pingtest-kube-run: pingtest-kube-run-$1
+pingtest-kube-run-$1: $(DESTDIR)/pingtest/kube/$1.run
+	cat $$@ | ./analyze.awk
 $(DESTDIR)/pingtest/kube/$1.run: $(DESTDIR)/pingtest/kube/$1.push
 	mkdir -p $$(dir $$@)
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl run -i --rm --restart=Never --image=gcr.io/$2/pingtest:latest --image-pull-policy=Always "pingtest-$2-$$$$(head -c 8 /dev/random | md5sum | head -c 8)" --env REDIS_URL=$(PINGTEST_REDIS_URL) --env POSTGRES_URL=$(PINGTEST_POSTGRES_URL) ./pingtest.sh | tee $@.tmp
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl run -i --rm --restart=Never --image=gcr.io/$2/pingtest:latest --image-pull-policy=Always "pingtest-$2-$$$$(head -c 8 /dev/random | md5sum | head -c 8)" --env REDIS_URL=$(PINGTEST_REDIS_URL) --env POSTGRES_URL=$(PINGTEST_POSTGRES_URL) ./pingtest.sh | tee $$@.tmp
 	mv $$@.tmp $$@
 $(DESTDIR)/pingtest/kube/$1.push: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
