@@ -112,7 +112,7 @@ pingtest pingtest-kube-run pingtest-kube-run-$1: $(DESTDIR)/pingtest/kube/$1.run
 pingtest-kube-push pingtest-kube-push-$1: $(DESTDIR)/pingtest/kube/$1.push
 $(DESTDIR)/pingtest/kube/$1.run: $(DESTDIR)/pingtest/kube/$1.push
 	mkdir -p $$(dir $$@)
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl run -i --rm --restart=Never --image=gcr.io/$2/pingtest:latest --image-pull-policy=Always "pingtest-$2-$$$$(head -c 8 /dev/random | md5sum | head -c 8)" -- echo HELLO WORLD FROM CONTAINER | tee $$@.tmp
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl run -i --rm --restart=Never --image=gcr.io/$2/pingtest:latest --image-pull-policy=Always "pingtest-$2-$$$$(head -c 8 /dev/random | md5sum | head -c 8)" --env REDIS_URL=$(PINGTEST_REDIS_URL) --env POSTGRES_URL=$(PINGTEST_POSTGRES_URL) ./pingtest.sh | tee $@.tmp
 	mv $$@.tmp $$@
 $(DESTDIR)/pingtest/kube/$1.push: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
