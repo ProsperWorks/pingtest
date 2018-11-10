@@ -112,9 +112,8 @@ pingtest pingtest-kube-run pingtest-kube-run-$1: $(DESTDIR)/pingtest/kube/$1.run
 pingtest-kube-push pingtest-kube-push-$1: $(DESTDIR)/pingtest/kube/$1.push
 $(DESTDIR)/pingtest/kube/$1.run: $(DESTDIR)/pingtest/kube/$1.push
 	mkdir -p $$(dir $$@)
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- echo HELLO WORLD EXECUTING: $1 $2
-#	docker run --rm -v $GCLOUD_SERVICE_ACCOUNT_KEY_FILE:/var/run/gcloud_service_account_key_file -v $(which docker):/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock --env GCP_PROJECT=$GCP_PROJECT --env GCP_CLUSTER=$GCP_CLUSTER --env GCP_REGION=$GCP_REGION "$KUBECTL_IMAGE" time -p kubectl "$NAMESPACE" --limits="$KUBERNETES_LIMITS" $KUBECTL_CMD --restart=Never --image="$ONEBOX_IMAGE" --image-pull-policy=Always "$POD_NAME" --env GIT_USER=$ONEBOX_GIT_USER --env GIT_REPOSITORY=$ONEBOX_GIT_REPOSITORY --env GIT_PASSWORD=$ONEBOX_GIT_PASSWORD --env AWS_ACCESS_KEY_ID=$ONEBOX_AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY=$ONEBOX_AWS_SECRET_ACCESS_KEY -- "$@"
-#	mv $$@.tmp $$@
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl run -i --rm --restart=Never --image=gcr.io/$2/pingtest:latest --image-pull-policy=Always "pingtest-$2-$$(head -c 8 /dev/random | md5sum | head -c 8)" -- echo HELLO WORLD FROM CONTAINER | tee $$.tmp
+	mv $$@.tmp $$@
 $(DESTDIR)/pingtest/kube/$1.push: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
 	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- docker tag pingtest:latest gcr.io/$2/pingtest:latest
