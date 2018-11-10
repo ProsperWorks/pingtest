@@ -97,23 +97,22 @@ $(DESTDIR)/pingtest/docker: $(DESTDIR)/pingtest/docker.built
 
 # Run pingtest.sh in a Docker container in several GCP Kubernetes clusters.
 #
-GOOGLENOX_RUN_ARGS :=
-GOOGLENOX_RUN_ARGS += --env GCP_PROJECT=$(GCP_PROJECT)
-GOOGLENOX_RUN_ARGS += --env GCP_CLUSTER=$(GCP_CLUSTER)
-GOOGLENOX_RUN_ARGS += --env GCP_REGION=us-east4
-GOOGLENOX_RUN_ARGS += -v $(shell which docker):/usr/bin/docker
-GOOGLENOX_RUN_ARGS += -v /var/run/docker.sock:/var/run/docker.sock
-GOOGLENOX_RUN_ARGS += -v $(GCLOUD_SERVICE_ACCOUNT_KEY_FILE):/var/run/gcloud_service_account_key_file
-
+GOOGLENOX_IMAGE                    := googlenox:docker-container-fixes
+GCLOUD_SERVICE_ACCOUNT_KEY_FILE ?= ~/Downloads/ali-testing-onebox-spring-ba3766abc597.json
+GOOGLENOX_RUN_ARGS                 :=
+GOOGLENOX_RUN_ARGS                 += --env GCP_REGION=us-east4
+GOOGLENOX_RUN_ARGS                 += -v $(shell which docker):/usr/bin/docker
+GOOGLENOX_RUN_ARGS                 += -v /var/run/docker.sock:/var/run/docker.sock
+GOOGLENOX_RUN_ARGS                 += -v $(GCLOUD_SERVICE_ACCOUNT_KEY_FILE):/var/run/gcloud_service_account_key_file
 define PER_KUBE
 .PHONY: pingtest-kube pingtest-kube-$1
 pingtest pingtest-kube: pingtest-kube-$1
 pingtest-kube-$1: $(DESTDIR)/pingtest/kube/$1
 $(DESTDIR)/pingtest/kube/$1: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
-	set -o pipefail ; false
+	docker run --rm -it $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 --env GCP_CLUSTER=$3 $(GOOGLENOX_IMAGE) -- echo HELLO WORLD
 	echo POOP $1 $2 $3 > $$@.tmp
-	mv $$@.tmp $$@
+#	mv $$@.tmp $$@
 endef # define PER_KUBE
 $(eval $(call PER_KUBE,001,ali-integration-001,ali-integration-001-blue))
 $(eval $(call PER_KUBE,002,ali-integration-002,ali-integration-002-cobalt))
