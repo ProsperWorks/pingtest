@@ -13,15 +13,15 @@ DESTDIR := build
 #
 # I created some test resources like so:
 #
-#   $ heroku apps:create --app jhw-pingtest --org prosperworks
-#   $ heroku addons:create --app jhw-pingtest heroku-postgresql:standard-0
-#   $ heroku addons:create --app jhw-pingtest rediscloud:30
+#   $ heroku apps:create --app jhw-test-app --org prosperworks
+#   $ heroku addons:create --app jhw-test-app heroku-postgresql:standard-0
+#   $ heroku addons:create --app jhw-test-app rediscloud:30
 #
 # I waited a bit for the resources to spin up, then I got target URLs
 # like so:
 #
-#   $ heroku config:get --app jhw-pingtest DATABASE_URL    # as POSTGRES_URL
-#   $ heroku config:get --app jhw-pingtest REDISCLOUD_URL  # as REDIS_URL
+#   $ heroku config:get --app jhw-test-app DATABASE_URL    # as POSTGRES_URL
+#   $ heroku config:get --app jhw-test-app REDISCLOUD_URL  # as REDIS_URL
 #
 # PINGTEST_POSTGRES_URL and PINGTEST_REDIS_URL are expected to be set
 # in the environment as per those commands.  The values themselves
@@ -31,7 +31,7 @@ DESTDIR := build
 # Still, after we are done testing today (2018-09-13) I should clean
 # up with:
 #
-#   $ heroku apps:destroy --app jhw-pingtest --confirm jhw-pingtest
+#   $ heroku apps:destroy --app jhw-test-app --confirm jhw-test-app
 #
 # We will create VMs and containers and dynos in a variety of clouds
 # and run pingtest.sh to communicate with these resources.
@@ -110,8 +110,9 @@ pingtest pingtest-kube: pingtest-kube-$1
 pingtest-kube-$1: $(DESTDIR)/pingtest/kube/$1
 $(DESTDIR)/pingtest/kube/$1: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
-	docker run --rm -it $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 --env GCP_CLUSTER=$3 $(GOOGLENOX_IMAGE) -- echo HELLO WORLD
-	echo POOP $1 $2 $3 > $$@.tmp
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 --env GCP_CLUSTER=$3 $(GOOGLENOX_IMAGE) -- echo HELLO WORLD
+	echo POOP $1 $2 $3
+# > $$@.tmp
 #	mv $$@.tmp $$@
 endef # define PER_KUBE
 $(eval $(call PER_KUBE,001,ali-integration-001,ali-integration-001-blue))
