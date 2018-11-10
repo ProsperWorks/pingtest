@@ -101,6 +101,7 @@ GOOGLENOX_IMAGE                    := googlenox:docker-container-fixes
 GCLOUD_SERVICE_ACCOUNT_KEY_FILE ?= ~/Downloads/ali-testing-onebox-spring-ba3766abc597.json
 GOOGLENOX_RUN_ARGS                 :=
 GOOGLENOX_RUN_ARGS                 += --env GCP_REGION=us-east4
+GOOGLENOX_RUN_ARGS                 += --env GCP_CLUSTER=ali-app
 GOOGLENOX_RUN_ARGS                 += -v $(shell which docker):/usr/bin/docker
 GOOGLENOX_RUN_ARGS                 += -v /var/run/docker.sock:/var/run/docker.sock
 GOOGLENOX_RUN_ARGS                 += -v $(GCLOUD_SERVICE_ACCOUNT_KEY_FILE):/var/run/gcloud_service_account_key_file
@@ -110,7 +111,7 @@ pingtest pingtest-kube: pingtest-kube-$1
 pingtest-kube-$1: $(DESTDIR)/pingtest/kube/$1
 $(DESTDIR)/pingtest/kube/$1: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 --env GCP_CLUSTER=$3 $(GOOGLENOX_IMAGE) -- echo HELLO WORLD
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl get pods
 	echo POOP $1 $2 $3
 # > $$@.tmp
 #	mv $$@.tmp $$@
