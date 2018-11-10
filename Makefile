@@ -108,13 +108,18 @@ GOOGLENOX_RUN_ARGS                 += -v $(GCLOUD_SERVICE_ACCOUNT_KEY_FILE):/var
 define PER_KUBE
 .PHONY: pingtest-kube pingtest-kube-$1
 pingtest pingtest-kube: pingtest-kube-$1
-pingtest-kube-$1: $(DESTDIR)/pingtest/kube/$1
-$(DESTDIR)/pingtest/kube/$1: $(DESTDIR)/pingtest/docker.built
+pingtest-kube-$1: $(DESTDIR)/pingtest/kube/$1.run
+$(DESTDIR)/pingtest/kube/$1.run: $(DESTDIR)/pingtest/kube/$1.push
 	mkdir -p $$(dir $$@)
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$3 $(GOOGLENOX_IMAGE) -- kubectl get pods
-	echo POOP $1 $2 $3
-# > $$@.tmp
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$3 $(GOOGLENOX_IMAGE) -- echo HELLO WORLD EXECUTING: $1 $2 $3
+#	docker run --rm -v $GCLOUD_SERVICE_ACCOUNT_KEY_FILE:/var/run/gcloud_service_account_key_file -v $(which docker):/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock --env GCP_PROJECT=$GCP_PROJECT --env GCP_CLUSTER=$GCP_CLUSTER --env GCP_REGION=$GCP_REGION "$KUBECTL_IMAGE" time -p kubectl "$NAMESPACE" --limits="$KUBERNETES_LIMITS" $KUBECTL_CMD --restart=Never --image="$ONEBOX_IMAGE" --image-pull-policy=Always "$POD_NAME" --env GIT_USER=$ONEBOX_GIT_USER --env GIT_REPOSITORY=$ONEBOX_GIT_REPOSITORY --env GIT_PASSWORD=$ONEBOX_GIT_PASSWORD --env AWS_ACCESS_KEY_ID=$ONEBOX_AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY=$ONEBOX_AWS_SECRET_ACCESS_KEY -- "$@"
+	false
 #	mv $$@.tmp $$@
+$(DESTDIR)/pingtest/kube/$1.push: $(DESTDIR)/pingtest/docker.built
+	mkdir -p $$(dir $$@)
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) $(GOOGLENOX_IMAGE) docker tag pingtest:latest gcr.io/pingtest:latest
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$3 $(GOOGLENOX_IMAGE) -- docker push gcr.io/pingtest:latest
+	touch $$@
 endef # define PER_KUBE
 $(eval $(call PER_KUBE,001,ali-integration-001,ali-integration-001-blue))
 $(eval $(call PER_KUBE,002,ali-integration-002,ali-integration-002-cobalt))
