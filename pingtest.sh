@@ -40,7 +40,8 @@ set -euo pipefail
 #
 # These numbers measured on my local Mac, connecting to localhost.
 #
-if [[ -z "${REDIS_URL:-${REDISCLOUD_URL:-}}" ]]
+REDIS_URL="${REDIS_URL:-${REDISCLOUD_URL:-}}"
+if [[ -z "$REDIS_URL" ]]
 then
     echo "no REDIS_URL or REDISCLOUD_URL"
 elif [[ ! -x `which redis-cli` ]]
@@ -58,20 +59,20 @@ then
 else
     for i in `seq 1 $NUM_SAMPLES`
     do
-        redis-cli -u "${REDIS_URL:-${REDISCLOUD_URL:-}}" --latency --raw | awk '{print "redis:",$0}'
+        redis-cli -u "$REDIS_URL" --latency --raw | awk '{print "redis:",$0}'
     done
     redis-cli --intrinsic-latency 3
     #
-    # Estimate bandwidth with a series of large-ish ECHOs.
+    # Estimate bandwidth if memtier_benchmark is available.
     #
-    # The craziness with '3>&2 2>&1 1>&3 > /dev/null' is from:
-    #
-    #   https://stackoverflow.com/questions/13299317
-    #
-    # It swaps stdout and stderr, so we drop the output from redis-cli
-    # but keep the diagnostic output from pv.
-    #
-    #(seq 1 $NUM_SAMPLES | xargs -I {} bash -c 'echo -n "ECHO " ; head -c 65536 /dev/random | base64' | pv --wait --force --name '  redis pv  INPUT' | redis-cli -u $REDIS_URL | pv --wait --force --name '  redis pv OUTPUT') 3>&2 2>&1 1>&3 > /dev/null
+    if which memtier_benchmark
+    then
+        REDIS_SERV="$(echo $REDIS_URL | sed -e 's/.*@//g' -e 's/:.*//g')"
+        REDIS_PORT="$(echo $REDIS_URL | sed -e 's/.*://g')"
+        REDIS_AUTH="$(echo $REDIS_URL | sed -e 's/@.*//g' -e 's/.*://g')"
+        echo memtier_benchmark -s "$REDIS_SERV" -p "$REDIS_PORT" -a "$REDIS_AUTH" --test-time "$NUM_SAMPLES" --random-data
+        memtier_benchmark -s "$REDIS_SERV" -p "$REDIS_PORT" -a "$REDIS_AUTH" --test-time "$NUM_SAMPLES" --random-data
+    fi
 fi
 
 # Measure time to Postgres, if psql is installed at suitable version

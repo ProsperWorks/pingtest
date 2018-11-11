@@ -10,6 +10,7 @@ BEGIN {
     pg_num      = 0
     kernel_ave  = 0.0
     kernel_unit = "unknown"
+    print_next  = 0
 }
 {
     if ($0 ~ /^redis: /) {
@@ -24,8 +25,12 @@ BEGIN {
         kernel_ave  = $6
         kernel_unit = $7
     }
-    else if ($0 ~ /redis pv .*PUT/) {
-        print $0
+    else if ($0 ~ /^ALL STATS/) {
+        print_next  = 7
+    }
+    else if (print_next > 0) {
+        printf "  redis memtier_benchmark: %s\n", $0
+        print_next -= 1
     }
 }
 END {

@@ -86,8 +86,10 @@ $(DESTDIR)/pingtest/local: ./pingtest.sh
 pingtest: pingtest-docker
 pingtest-docker: $(DESTDIR)/pingtest/docker
 	cat $< | ./analyze.awk
-.PHONY: docker-build
+.PHONY: docker-build docker-run
 docker-build: $(DESTDIR)/pingtest/docker.built
+docker-run: $(DESTDIR)/pingtest/docker.built
+	docker run -it --rm pingtest:latest
 $(DESTDIR)/pingtest/docker.built: Dockerfile ./pingtest.sh
 	@mkdir -p $(dir $@)
 	time -p docker build . --tag pingtest:latest
@@ -132,7 +134,7 @@ $(eval $(call PER_KUBE,test,ali-testing-onebox-spring))
 
 # Run pingtest.sh in onebox-pw on a Standard-1X or a Performance-L.
 #
-ONEBOX_HEROKU_APP := onebox-pw-test-c
+ONEBOX_HEROKU_APP := onebox-pw-test-b
 .PHONY: pingtest-onebox-pw-1x
 pingtest: pingtest-onebox-pw-1x
 pingtest-onebox-pw-1x: $(DESTDIR)/pingtest/onebox-pw-1x
