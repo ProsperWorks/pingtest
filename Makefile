@@ -176,7 +176,7 @@ setup: setup-ec2-$1
 setup-ec2-$1: $(DESTDIR)/setup/ec2/$1
 $(DESTDIR)/setup/ec2/$1:
 	@mkdir -p $$(dir $$@)
-	ssh -i $3 ubuntu@$2 "echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' | sudo tee -a /etc/apt/sources.list.d/pgdg.list && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - && sudo apt-get update && sudo apt-get install -y postgresql-10 build-essential tcl && rm -rf redis-4.0.9* && wget http://download.redis.io/releases/redis-4.0.9.tar.gz && tar xvzf redis-4.0.9.tar.gz && make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install"
+	ssh -i $3 ubuntu@$2 "echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' | sudo tee -a /etc/apt/sources.list.d/pgdg.list && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - && sudo apt-get update && sudo apt-get install -y postgresql-10 build-essential tcl pv && rm -rf redis-4.0.9* && wget http://download.redis.io/releases/redis-4.0.9.tar.gz && tar xvzf redis-4.0.9.tar.gz && make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install"
 	@touch $$@
 .PHONY: hostname-ec2-$1
 hostname: hostname-ec2-$1
@@ -212,7 +212,7 @@ setup: setup-gcp-$1
 setup-gcp-$1: $(DESTDIR)/setup/gcp/$1
 $(DESTDIR)/setup/gcp/$1:
 	@mkdir -p $$(dir $$@)
-	ssh -i $3 $2 "sudo apt-get update && sudo apt-get install -y postgresql build-essential tcl && rm -rf redis-4.0.9* && wget http://download.redis.io/releases/redis-4.0.9.tar.gz && tar xvzf redis-4.0.9.tar.gz && make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install"
+	ssh -i $3 $2 "sudo apt-get update && sudo apt-get install -y postgresql build-essential tcl pv && rm -rf redis-4.0.9* && wget http://download.redis.io/releases/redis-4.0.9.tar.gz && tar xvzf redis-4.0.9.tar.gz && make -C redis-4.0.9 -j 5 && sudo make -C redis-4.0.9 install"
 	@touch $$@
 .PHONY: hostname-gcp-$1
 hostname: hostname-gcp-$1
