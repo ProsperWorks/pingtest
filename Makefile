@@ -137,7 +137,7 @@ pingtest-onebox-pw-1x: $(DESTDIR)/pingtest/onebox-pw-1x
 	cat $< | ./analyze.awk
 $(DESTDIR)/pingtest/onebox-pw-1x:
 	@mkdir -p $(dir $@)
-	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-1X --app onebox-pw --env "REDIS_URL=$(REDIS_URL);POSTGRES_URL=$(POSTGRES_URL)" -- bash - | tee $@.tmp
+	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Standard-1X --app onebox-pw --env "REDIS_URL=$(REDIS_URL);POSTGRES_URL=$(POSTGRES_URL)" -- bash /dev/stdin $(NUM_SAMPLES) | tee $@.tmp
 	@mv $@.tmp $@
 .PHONY: pingtest-onebox-pw-l
 pingtest: pingtest-onebox-pw-l
@@ -145,7 +145,7 @@ pingtest-onebox-pw-l: $(DESTDIR)/pingtest/onebox-pw-l
 	cat $< | ./analyze.awk
 $(DESTDIR)/pingtest/onebox-pw-l:
 	@mkdir -p $(dir $@)
-	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Performance-L --app onebox-pw --env "REDIS_URL=$(REDIS_URL);POSTGRES_URL=$(POSTGRES_URL)" -- bash - | tee $@.tmp
+	set -o pipefail ; cat pingtest.sh | heroku run --no-tty --exit-code --size Performance-L --app onebox-pw --env "REDIS_URL=$(REDIS_URL);POSTGRES_URL=$(POSTGRES_URL)" -- bash /dev/stdin $(NUM_SAMPLES) | tee $@.tmp
 	@mv $@.tmp $@
 
 # Run pingtest.sh on an EC2s instances under account
@@ -168,7 +168,7 @@ pingtest-ec2-$1: $(DESTDIR)/pingtest/ec2/$1
 	cat $$< | ./analyze.awk
 $(DESTDIR)/pingtest/ec2/$1: $(DESTDIR)/setup/ec2/$1
 	@mkdir -p $$(dir $$@)
-	set -o pipefail ; cat pingtest.sh | ssh -i $3 ubuntu@$2 "env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) bash -" | tee $$@.tmp
+	set -o pipefail ; cat pingtest.sh | ssh -i $3 ubuntu@$2 "env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) bash /dev/stdin $(NUM_SAMPLES)" | tee $$@.tmp
 	@mv $$@.tmp $$@
 .PHONY: setup-ec2-$1
 setup: setup-ec2-$1
@@ -204,7 +204,7 @@ pingtest-gcp-$1: $(DESTDIR)/pingtest/gcp/$1
 	cat $$< | ./analyze.awk
 $(DESTDIR)/pingtest/gcp/$1: $(DESTDIR)/setup/gcp/$1
 	@mkdir -p $$(dir $$@)
-	set -o pipefail ; cat pingtest.sh | ssh -i $3 $2 "env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) bash -" | tee $$@.tmp
+	set -o pipefail ; cat pingtest.sh | ssh -i $3 $2 "env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) bash /dev/stdin $(NUM_SAMPLES)" | tee $$@.tmp
 	@mv $$@.tmp $$@
 .PHONY: setup-gcp-$1
 setup: setup-gcp-$1
