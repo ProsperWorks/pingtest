@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-NUM_SAMPLES="60"
+NUM_SAMPLES="5"
 
 # Measure time to Redis, if redis-cli is installed at suitable version
 # and REDIS_URL or REDISCLOUD_URL is defined.
