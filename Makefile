@@ -128,6 +128,7 @@ $(eval $(call PER_KUBE,001,ali-integration-001-blue))
 $(eval $(call PER_KUBE,002,ali-integration-002-cobalt))
 $(eval $(call PER_KUBE,003,ali-integration-003-crimson))
 $(eval $(call PER_KUBE,004,ali-integration-004-coral))
+$(eval $(call PER_KUBE,test,ali-testing-onebox-spring))
 
 # Run pingtest.sh in onebox-pw on a Standard-1X or a Performance-L.
 #
@@ -198,8 +199,8 @@ $(eval $(call EC2_TEST,jhw-pingtest-aws-us-west-1,ec2-54-183-146-90.us-west-1.co
 # host name, and $3 an ssh identity file.
 #
 define GCP_TEST
-.PHONY: pingtest-gcp-$1
-pingtest: pingtest-gcp-$1
+.PHONY: pingtest-gcp pingtest-gcp-$1
+pingtest pingtest-gcp: pingtest-gcp-$1
 pingtest-gcp-$1: $(DESTDIR)/pingtest/gcp/$1
 	cat $$< | ./analyze.awk
 $(DESTDIR)/pingtest/gcp/$1: $(DESTDIR)/setup/gcp/$1
@@ -218,5 +219,5 @@ hostname: hostname-gcp-$1
 hostname-gcp-$1:
 	ssh -i $3 $2 hostname
 endef
-$(eval $(call GCP_TEST,jhw-pingtest-gcp-us-east1,35.229.16.35,~/.ssh/id_rsa))
-$(eval $(call GCP_TEST,jhw-pingtest-gcp-us-east4,35.230.160.36,~/.ssh/id_rsa))
+$(eval $(call GCP_TEST,jhw-test-gcp-us-east1,35.196.111.33,~/.ssh/id_rsa))
+$(eval $(call GCP_TEST,jhw-test-gcp-us-east4,35.221.42.60,~/.ssh/id_rsa))
