@@ -1,4 +1,4 @@
-#!/usr/bin/env awk -f
+#!/usr/bin/awk -f
 #
 # Parses the output of ./pingtest.sh to average up all the numbers
 # nice and pretty.
