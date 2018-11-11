@@ -88,7 +88,7 @@ pingtest-docker: $(DESTDIR)/pingtest/docker
 	cat $< | ./analyze.awk
 .PHONY: docker-build
 docker-build: $(DESTDIR)/pingtest/docker.built
-$(DESTDIR)/pingtest/docker.built: Dockerfile ./pingtest.sh $(NUM_SAMPLES)
+$(DESTDIR)/pingtest/docker.built: Dockerfile ./pingtest.sh
 	@mkdir -p $(dir $@)
 	time -p docker build . --tag pingtest:latest
 	touch $@
