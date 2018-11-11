@@ -124,8 +124,8 @@ $(DESTDIR)/pingtest/kube/$1.push: $(DESTDIR)/pingtest/docker.built
 endef # define PER_KUBE
 $(eval $(call PER_KUBE,001,ali-integration-001-blue))
 $(eval $(call PER_KUBE,002,ali-integration-002-cobalt))
-########## (eval $(call PER_KUBE,003,ali-integration-003-crimson))
-########## (eval $(call PER_KUBE,004,ali-integration-004-coral))
+$(eval $(call PER_KUBE,003,ali-integration-003-crimson))
+$(eval $(call PER_KUBE,004,ali-integration-004-coral))
 
 # Run pingtest.sh in onebox-pw on a Standard-1X or a Performance-L.
 #
