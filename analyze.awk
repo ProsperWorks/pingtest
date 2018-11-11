@@ -24,6 +24,9 @@ BEGIN {
         kernel_ave  = $6
         kernel_unit = $7
     }
+    else if ($0 ~ /redis pv .*PUT/) {
+        print $0
+    }
 }
 END {
     if (0 == pg_num) {

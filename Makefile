@@ -9,7 +9,7 @@
 SHELL   := bash
 DESTDIR := build
 
-NUM_SAMPLES ?= 60
+NUM_SAMPLES ?= 5
 
 # Test resources.
 #
@@ -75,7 +75,7 @@ cleantests:
 pingtest: pingtest-local
 pingtest-local: $(DESTDIR)/pingtest/local
 	cat $< | ./analyze.awk
-$(DESTDIR)/pingtest/local:
+$(DESTDIR)/pingtest/local: ./pingtest.sh
 	@mkdir -p $(dir $@)
 	env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) ./pingtest.sh $(NUM_SAMPLES) | tee $@.tmp
 	@mv $@.tmp $@
