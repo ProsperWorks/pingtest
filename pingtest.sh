@@ -8,9 +8,9 @@
 # incept: 2018-04-02
 #
 
-set -euo pipefail
+NUM_SAMPLES="${1:-60}"
 
-NUM_SAMPLES="5"
+set -euo pipefail
 
 # Measure time to Redis, if redis-cli is installed at suitable version
 # and REDIS_URL or REDISCLOUD_URL is defined.

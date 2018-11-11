@@ -9,6 +9,8 @@
 SHELL   := bash
 DESTDIR := build
 
+NUM_SAMPLES ?= 60
+
 # Test resources.
 #
 # I created some test resources like so:
@@ -75,7 +77,7 @@ pingtest-local: $(DESTDIR)/pingtest/local
 	cat $< | ./analyze.awk
 $(DESTDIR)/pingtest/local:
 	@mkdir -p $(dir $@)
-	env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) ./pingtest.sh | tee $@.tmp
+	env REDIS_URL=$(REDIS_URL) POSTGRES_URL=$(POSTGRES_URL) ./pingtest.sh $(NUM_SAMPLES) | tee $@.tmp
 	@mv $@.tmp $@
 
 # Run pingtest.sh in a Docker container locally.
@@ -86,13 +88,13 @@ pingtest-docker: $(DESTDIR)/pingtest/docker
 	cat $< | ./analyze.awk
 .PHONY: docker-build
 docker-build: $(DESTDIR)/pingtest/docker.built
-$(DESTDIR)/pingtest/docker.built: Dockerfile ./pingtest.sh
+$(DESTDIR)/pingtest/docker.built: Dockerfile ./pingtest.sh $(NUM_SAMPLES)
 	@mkdir -p $(dir $@)
 	time -p docker build . --tag pingtest:latest
 	touch $@
 $(DESTDIR)/pingtest/docker: $(DESTDIR)/pingtest/docker.built
 	@mkdir -p $(dir $@)
-	set -o pipefail ; docker run --rm --env REDIS_URL=$(REDIS_URL) --env POSTGRES_URL=$(POSTGRES_URL) pingtest:latest pingtest.sh | tee $@.tmp
+	set -o pipefail ; docker run --rm --env REDIS_URL=$(REDIS_URL) --env POSTGRES_URL=$(POSTGRES_URL) pingtest:latest pingtest.sh $(NUM_SAMPLES) | tee $@.tmp
 	@mv $@.tmp $@
 
 # Run pingtest.sh in a Docker container in several GCP Kubernetes clusters.
@@ -114,7 +116,7 @@ pingtest-kube-run-$1: $(DESTDIR)/pingtest/kube/$1.run
 	cat $$^ | ./analyze.awk
 $(DESTDIR)/pingtest/kube/$1.run: $(DESTDIR)/pingtest/kube/$1.push
 	mkdir -p $$(dir $$@)
-	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl run -i --rm --restart=Never --image=gcr.io/$2/pingtest:latest --image-pull-policy=Always "pingtest-$2-$$$$(head -c 8 /dev/random | md5sum | head -c 8)" --env REDIS_URL=$(PINGTEST_REDIS_URL) --env POSTGRES_URL=$(PINGTEST_POSTGRES_URL) ./pingtest.sh | tee $$@.tmp
+	docker run --rm -i $(GOOGLENOX_RUN_ARGS) --env GCP_PROJECT=$2 $(GOOGLENOX_IMAGE) -- kubectl run -i --rm --restart=Never --image=gcr.io/$2/pingtest:latest --image-pull-policy=Always "pingtest-$2-$$$$(head -c 8 /dev/random | md5sum | head -c 8)" --env REDIS_URL=$(PINGTEST_REDIS_URL) --env POSTGRES_URL=$(PINGTEST_POSTGRES_URL) ./pingtest.sh $(NUM_SAMPLES) | tee $$@.tmp
 	mv $$@.tmp $$@
 $(DESTDIR)/pingtest/kube/$1.push: $(DESTDIR)/pingtest/docker.built
 	mkdir -p $$(dir $$@)
