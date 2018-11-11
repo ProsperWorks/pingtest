@@ -183,8 +183,8 @@ hostname: hostname-ec2-$1
 hostname-ec2-$1:
 	ssh -i $3 ubuntu@$2 hostname
 endef
-$(eval $(call EC2_TEST,jhw-pingtest-aws-us-east-1,ec2-34-205-18-34.compute-1.amazonaws.com,~/.ssh/jhw-pingtest.pem))
-$(eval $(call EC2_TEST,jhw-pingtest-aws-us-west-1,ec2-54-183-146-90.us-west-1.compute.amazonaws.com,~/.ssh/jhw-pingtest-us-west-1pem.pem))
+### (eval $(call EC2_TEST,jhw-pingtest-aws-us-east-1,ec2-34-205-18-34.compute-1.amazonaws.com,~/.ssh/jhw-pingtest.pem))
+### (eval $(call EC2_TEST,jhw-pingtest-aws-us-west-1,ec2-54-183-146-90.us-west-1.compute.amazonaws.com,~/.ssh/jhw-pingtest-us-west-1pem.pem))
 
 # Run pingtest.sh on GCP instances, connecting to ali-integration services.
 #
