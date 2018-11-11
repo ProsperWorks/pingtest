@@ -71,7 +71,7 @@ else
     # It swaps stdout and stderr, so we drop the output from redis-cli
     # but keep the diagnostic output from pv.
     #
-    (seq 1 $NUM_SAMPLES | xargs -I {} bash -c 'echo -n "ECHO " ; head -c 65536 /dev/random | base64' | pv --wait --force --name '  redis pv  INPUT' | redis-cli -u $REDIS_URL | pv --wait --force --name '  redis pv OUTPUT') 3>&2 2>&1 1>&3 > /dev/null
+    #(seq 1 $NUM_SAMPLES | xargs -I {} bash -c 'echo -n "ECHO " ; head -c 65536 /dev/random | base64' | pv --wait --force --name '  redis pv  INPUT' | redis-cli -u $REDIS_URL | pv --wait --force --name '  redis pv OUTPUT') 3>&2 2>&1 1>&3 > /dev/null
 fi
 
 # Measure time to Postgres, if psql is installed at suitable version
