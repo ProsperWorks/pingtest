@@ -22,5 +22,8 @@ RUN set -ex                                                              && \
     make -C redis-4.0.9 install                                          && \
     rm -rf redis-4.0.9.tar.gz redis-4.0.9
 
+RUN set -ex                                                              && \
+    apt-get install -y pv
+
 COPY pingtest.sh ./pingtest.sh
 ENV  PATH="$PATH:."
