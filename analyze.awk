@@ -26,9 +26,9 @@ BEGIN {
         kernel_unit = $7
     }
     else if ($0 ~ /^ALL STATS/) {
-        print_next  = 7
+        print_next  = 0
     }
-    else if (print_next > 0) {
+    else if (print_next > 0 || $0 ~ /^Type *Ops/ || $0 ~ /^Totals /) {
         printf "  redis memtier_benchmark: %s\n", $0
         print_next -= 1
     }
